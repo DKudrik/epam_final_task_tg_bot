@@ -68,7 +68,7 @@ def save_image(update, context):
     if image_id:
         image = context.bot.get_file(image_id)
         # 1. получать filepath
-        # https://api.telegram.org/bot5265067704:AAEMkbxQj0fnJKtg4uLct8U1N-dyHrEZ1yo/getFile?file_id=any
+        # https://api.telegram.org/bot<token>/getFile?file_id=any
         # 2. чекать расширение
 
         user_id = update.message.chat.id
