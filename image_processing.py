@@ -3,7 +3,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 
-def count_images(user_id, text=None):
+def count_images(user_id, text=None, font=None, font_size=None, private=None):
     images = []
 
     for file in os.listdir("."):
@@ -11,19 +11,19 @@ def count_images(user_id, text=None):
             images.append(file)
 
     if len(images) > 1:
-        print("creating gif")
-        return create_gif(images)
-    else:
+        return create_gif(images, private=private)
+    elif len(images) == 1:
         image_name = images[0]
-        print("adding text")
-        return add_text_on_image(text, image_name)
+        return add_text_on_image(text, image_name, font, font_size)
 
 
-def create_gif(images):
+def create_gif(images, private=None):
     if not os.path.exists("GIFS"):
         os.makedirs("GIFS")
     name = images[0]
     gif_name = name.split(".")[0] + ".gif"
+    if private:
+        gif_name = "private-" + gif_name
     frames = []
     for image in images:
         draw_watermark(image)
@@ -47,23 +47,25 @@ def draw_watermark(image):
         rgb_image = image.convert("RGB")
         draw = ImageDraw.Draw(rgb_image)
         text = "Picture process bot"
-        font = ImageFont.truetype("UKIJDiY.ttf", 62, encoding="UTF-8")
+        font = ImageFont.truetype("fonts/UKIJDiY.ttf", 62, encoding="UTF-8")
         width, height = image.size
         draw.text((0, height // 2), text, (240, 240, 240), font=font)
         rgb_image.save(image.filename)
         rgb_image.close()
 
 
-def add_text_on_image(text, image_name):
-    if not os.path.exists("processed_images"):
-        os.makedirs("processed_images")
+def add_text_on_image(text, image_name, font=None, font_size=None):
+    if not os.path.exists("Processed_images"):
+        os.makedirs("Processed_images")
     with Image.open(image_name) as image:
         rgb_image = image.convert("RGB")
         draw = ImageDraw.Draw(rgb_image)
         text = text
-        font = ImageFont.truetype("UKIJDiY.ttf", 62, encoding="UTF-8")
+        font_size = int(font_size) if font_size else 32
+        font = ("fonts" + font + ".ttf") if font else "fonts/UKIJDiY.ttf"
+        font = ImageFont.truetype(font, font_size, encoding="UTF-8")
         draw.text((0, 0), text, font=font)
-        new_name = "processed_images/" + image_name
+        new_name = "Processed_images/" + image_name
         rgb_image.save(new_name)
         rgb_image.close()
     os.remove(image_name)
