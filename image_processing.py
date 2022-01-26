@@ -33,7 +33,7 @@ def create_gif(images, private=None):
         f"GIFS/{gif_name}",
         append_images=frames[1:],
         save_all=True,
-        duration=500,
+        duration=800,
         Loop=0,
     )
     url = "GIFS/" + gif_name
@@ -64,7 +64,7 @@ def add_text_on_image(text, image_name, font=None, font_size=None):
         font_size = int(font_size) if font_size else 32
         font = ("fonts" + font + ".ttf") if font else "fonts/UKIJDiY.ttf"
         font = ImageFont.truetype(font, font_size, encoding="UTF-8")
-        draw.text((0, 0), text, font=font)
+        draw.text((0, 0), text, (255, 0, 0), font=font)
         new_name = "Processed_images/" + image_name
         rgb_image.save(new_name)
         rgb_image.close()

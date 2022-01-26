@@ -1,4 +1,5 @@
 import os
+import time
 
 import boto3
 from dotenv import load_dotenv
@@ -49,6 +50,20 @@ def wake_up(update, context):
     send_message(update, context, text.format(username=username))
 
 
+def count_user_messages(user_id: int) -> int:
+    """
+    Returns number of previously sent messages by the user. In case it's a new
+    user and there is no record about him, returns 0 instead of None so that
+    the return value can be compared later with a condition value.
+
+    :param user_id:
+    :return: amount of user's sent messaged
+    """
+    if (USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"]) is None:
+        return 0
+    return USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"]
+
+
 def get_image_id(update, context):
     global USERS_INFO
     user_id = update.message.chat.id
@@ -56,7 +71,7 @@ def get_image_id(update, context):
         if update.message.document.mime_type in ["image/png", "image/jpeg"]:
             image_id = update.message.document.file_id
         else:
-            if USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"]:
+            if count_user_messages(user_id):
                 send_message(
                     update,
                     context,
@@ -85,7 +100,7 @@ def save_image(update, context):
         image_name = f"{user_id}-{image_id}.jpg"
         image.download(image_name)
         global USERS_INFO
-        if USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"] >= 1:
+        if count_user_messages(user_id) >= 1:
             text = (
                 "Отправьте еще одно изображение или выберите, как "
                 "сохранить GIF \n"
@@ -93,9 +108,7 @@ def save_image(update, context):
                 "/create_GIF - создать общий GIF"
             )
             send_message(update, context, text)
-        elif (
-            USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"] == 0
-        ) or USERS_INFO.get(user_id, 0) == 0:
+        elif count_user_messages(user_id) == 0 or USERS_INFO.get(user_id, 0) == 0:
             USERS_INFO[user_id] = {"sent_images": 0}
             text = (
                 "Отправьте следующее изображение или отправьте текст "
@@ -110,25 +123,33 @@ def save_image(update, context):
 def get_text(update, context):
     global USERS_INFO
     global FONTS
+    global SELECTED_FONT
     global SELECTED_FONT_SIZE
     global FONTS_SIZE
-    global SELECTED_FONT
     user_id = update.message.chat.id
     text = update.message.text
-    if USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"] == 1:
+    if count_user_messages(user_id) == 1:
         if text.strip("/") in FONTS:
-            SELECTED_FONT = text
-            message = (
-                "Отправьте текст или выберите размер шрифта: \n"
-                "/select_font_size - выбрать размер шрифта"
-            )
-            send_message(update, context, message)
+            if SELECTED_FONT_SIZE:
+                SELECTED_FONT = text
+                message = "Отправьте текст"
+                send_message(update, context, message)
+            else:
+                SELECTED_FONT = text
+                message = (
+                    "Отправьте текст или выберите размер шрифта: \n"
+                    "/select_font_size - выбрать размер шрифта"
+                )
+                send_message(update, context, message)
         elif text in FONTS_SIZE:
-            SELECTED_FONT_SIZE = text.strip("/")
-            message = (
-                "Отправьте текст или выберите шрифт: \n" "/select_font - выбрать шрифт"
-            )
-            send_message(update, context, message)
+            if SELECTED_FONT:
+                SELECTED_FONT_SIZE = text.strip("/")
+                message = "Отправьте текст"
+                send_message(update, context, message)
+            else:
+                SELECTED_FONT_SIZE = text.strip("/")
+                message = "Отправьте текст или выберите шрифт: \n /select_font - выбрать шрифт"
+                send_message(update, context, message)
         else:
             user_id = update.message.chat.id
             url = count_images(user_id, text, SELECTED_FONT, SELECTED_FONT_SIZE)
@@ -138,10 +159,10 @@ def get_text(update, context):
             USERS_INFO[user_id]["sent_images"] = 0
             SELECTED_FONT = None
             SELECTED_FONT_SIZE = None
-    elif USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"] > 1:
+    elif count_user_messages(user_id) > 1:
         text = "Отправьте еще одно изображение или нажмите /create_GIF"
         send_message(update, context, text)
-    elif USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"] == 0:
+    elif count_user_messages(user_id) == 0:
         send_message(update, context, "Сначала отправьте изображение")
     elif USERS_INFO.get(user_id, 0) == 0:
         send_message(update, context, "Сначала отправьте изображение")
@@ -154,7 +175,7 @@ def create_private_gif(update, context):
 def create_gif(update, context, private=None):
     global USERS_INFO
     user_id = update.message.chat.id
-    if USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"] >= 2:
+    if count_user_messages(user_id) >= 2:
         url = count_images(user_id, private=private)
         s3.upload_file(url, BUCKET, url)
         send_gif(update, context, url)
@@ -179,7 +200,16 @@ def send_gif(update, context, url):
     context.bot.send_animation(chat_id=chat.id, animation=open(url, "rb"))
 
 
-def get_and_send_all_gifs(update, context):
+def get_and_send_all_gifs(update, context) -> None:
+    """
+    Send all the GIFs made by all the users. In case GIF was created as private
+    it would be sent only to it's creator. To avoid Telegram flood limits
+    sleep limit after each sent message was used.
+
+    :param update: represents an incoming update
+    :param context: context of the processed message
+    :return: None
+    """
     chat = update.effective_chat
     user_id = update.message.chat.id
     gifs = s3.list_objects_v2(Bucket=BUCKET, Prefix="GIFS")["Contents"]
@@ -194,6 +224,7 @@ def get_and_send_all_gifs(update, context):
                     chat_id=chat.id, animation=open(gif_name, "rb")
                 )
                 os.remove(gif_name)
+                time.sleep(0.05)
 
 
 def get_and_send_user_gifs(update, context):
@@ -206,6 +237,7 @@ def get_and_send_user_gifs(update, context):
             s3.download_file(BUCKET, gif_name, gif_name)
             context.bot.send_animation(chat_id=chat.id, animation=open(gif_name, "rb"))
             os.remove(gif_name)
+            time.sleep(0.05)
 
 
 def select_font(update, context):
@@ -213,13 +245,13 @@ def select_font(update, context):
     global FONTS
     FONTS = []
     user_id = update.message.chat.id
-    if USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"] == 1:
+    if count_user_messages(user_id) == 1:
         for font in os.listdir("fonts"):
             font = font.split(".")[0]
             FONTS.append(font)
             text = "/" + font
             send_message(update, context, text)
-    elif USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"] > 1:
+    elif count_user_messages(user_id) > 1:
         text = "Отправьте еще одно изображение или нажмите /create_GIF"
         send_message(update, context, text)
     else:
