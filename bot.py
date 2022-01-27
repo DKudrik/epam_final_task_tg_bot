@@ -58,22 +58,20 @@ def wake_up(update, context) -> None:
     send_message(update, context, message.format(username=username))
 
 
-def count_user_messages(user_id: int) -> int:
+def count_user_images(user_id: int) -> int:
     """
-    Returns number of previously sent messages by the user. In case it's a new
-    user and there is no record about him, returns 0 instead of None so that
-    the return value can be compared later with a condition value.
+    Returns number of previously sent images by the user (after every image
+    processing the value is reset). In case it's a new user and there is no
+    record about him, returns 0 instead of None so that the return value
+    can be compared later with a condition value.
 
     :param user_id: id of the user
     :return: amount of user's sent messaged
     """
-    if (USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"]) is None:
+    global USERS_INFO
+    if USERS_INFO.get(user_id) is None:
         return 0
-    return USERS_INFO.get(user_id) and USERS_INFO[user_id]["sent_images"]
-
-
-def is_user_new(user_id: int) -> bool:
-    return USERS_INFO.get(user_id, 0) == 0
+    return USERS_INFO[user_id]["sent_images"]
 
 
 def get_image_id(update, context) -> int:
@@ -83,7 +81,7 @@ def get_image_id(update, context) -> int:
         if update.message.document.mime_type in ["image/png", "image/jpeg"]:
             image_id = update.message.document.file_id
         else:
-            if count_user_messages(user_id):
+            if count_user_images(user_id):
                 send_message(
                     update,
                     context,
@@ -120,7 +118,7 @@ def save_image(update, context) -> None:
         image_name = f"{user_id}-{image_id}.jpg"
         image.download(image_name)
         global USERS_INFO
-        if count_user_messages(user_id) >= 1:
+        if count_user_images(user_id) >= 1:
             message = (
                 "Отправьте еще одно изображение или выберите, как "
                 "сохранить GIF \n"
@@ -128,7 +126,7 @@ def save_image(update, context) -> None:
                 "/create_GIF - создать общий GIF"
             )
             send_message(update, context, message)
-        elif count_user_messages(user_id) == 0 or is_user_new(user_id):
+        elif count_user_images(user_id) == 0:
             USERS_INFO[user_id] = {"sent_images": 0}
             message = (
                 "Отправьте следующее изображение или отправьте текст "
@@ -148,7 +146,7 @@ def process_text_from_message(update, context):
     global FONTS_SIZE
     user_id = update.message.chat.id
     text = update.message.text
-    if count_user_messages(user_id) == 1:
+    if count_user_images(user_id) == 1:
         if text.strip("/") in FONTS:
             SELECTED_FONT = text
             if SELECTED_FONT_SIZE:
@@ -177,12 +175,10 @@ def process_text_from_message(update, context):
             USERS_INFO[user_id]["sent_images"] = 0
             SELECTED_FONT = None
             SELECTED_FONT_SIZE = None
-    elif count_user_messages(user_id) > 1:
+    elif count_user_images(user_id) > 1:
         message = "Отправьте еще одно изображение или нажмите /create_GIF"
         send_message(update, context, message)
-    elif count_user_messages(user_id) == 0:
-        send_message(update, context, "Сначала отправьте изображение")
-    elif is_user_new(user_id):
+    elif count_user_images(user_id) == 0:
         send_message(update, context, "Сначала отправьте изображение")
 
 
@@ -193,7 +189,7 @@ def create_private_gif(update, context) -> None:
 def create_gif(update, context, private: Optional[bool] = None) -> None:
     global USERS_INFO
     user_id = update.message.chat.id
-    if count_user_messages(user_id) >= 2:
+    if count_user_images(user_id) >= 2:
         url = count_images(user_id, private=private)
         s3.upload_file(url, BUCKET, url)
         send_gif(update, context, url)
@@ -287,13 +283,13 @@ def select_font(update, context) -> None:
     global FONTS
     FONTS = []
     user_id = update.message.chat.id
-    if count_user_messages(user_id) == 1:
+    if count_user_images(user_id) == 1:
         for font in os.listdir("fonts"):
             font = font.split(".")[0]
             FONTS.append(font)
             text = "/" + font
             send_message(update, context, text)
-    elif count_user_messages(user_id) > 1:
+    elif count_user_images(user_id) > 1:
         message = "Отправьте еще одно изображение или нажмите /create_GIF"
         send_message(update, context, message)
     else:

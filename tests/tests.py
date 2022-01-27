@@ -1,39 +1,32 @@
-def test_qwe():
-    assert 1 == 0
+import pytest
+
+import bot
+from bot import count_user_images, get_image_id
+
+# @pytest.fixture()
+# def users_info():
+#     users_info = {111: {"sent_images": 2}, 222: {"sent_images": 0}}
+#     return users_info
+
+# USERS_INFO = {111: {"sent_images": 2}, 222: {"sent_images": 0}}
 
 
-from bot import send_message
+@pytest.mark.parametrize("test_input,expected", [(222, 0), (333, 0)])
+def test_count_user_images(test_input, expected):
+    result = count_user_images(test_input)
+    assert result == expected
 
-context = "<telegram.ext.callbackcontext.CallbackContext object at 0x000002116C747F40>"
-update = {
-    "update_id": 995793002,
-    "message": {
-        "entities": [{"length": 6, "offset": 0, "type": "bot_command"}],
-        "message_id": 2788,
-        "new_chat_photo": [],
-        "caption_entities": [],
-        "delete_chat_photo": False,
-        "channel_chat_created": False,
-        "date": 1643260526,
-        "chat": {
-            "last_name": "Denis",
-            "type": "private",
-            "id": 348696390,
-            "first_name": "Denis",
-            "username": "uxubisg",
-        },
-        "new_chat_members": [],
-        "supergroup_chat_created": False,
-        "photo": [],
-        "group_chat_created": False,
-        "text": "/start",
-        "from": {
-            "first_name": "Denis",
-            "last_name": "Denis",
-            "username": "uxubisg",
-            "language_code": "ru",
-            "id": 348696390,
-            "is_bot": False,
-        },
-    },
-}
+
+@pytest.fixture
+def users_info():
+    bot.USERS_INFO = {111: {"sent_images": 2}, 222: {"sent_images": 0}}
+    return bot.USERS_INFO
+
+
+def test_get_image_id_from_voice_update():
+    context = (
+        "<telegram.ext.callbackcontext.CallbackContext object at 0x0000025F6C023C30>"
+    )
+    with open("tests/test_data/voice_update.txt") as update:
+        result = get_image_id(update, context)
+        assert result == 2893
