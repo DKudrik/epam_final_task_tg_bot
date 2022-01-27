@@ -1,9 +1,16 @@
 import os
+from typing import Optional
 
 from PIL import Image, ImageDraw, ImageFont
 
 
-def count_images(user_id, text=None, font=None, font_size=None, private=None):
+def count_images(
+    user_id: int,
+    text: Optional[str] = None,
+    font: Optional[str] = None,
+    font_size: Optional[int] = None,
+    private: Optional[bool] = None,
+):
     images = []
 
     for file in os.listdir("."):
@@ -61,7 +68,7 @@ def add_text_on_image(text, image_name, font=None, font_size=None):
         rgb_image = image.convert("RGB")
         draw = ImageDraw.Draw(rgb_image)
         text = text
-        font_size = int(font_size) if font_size else 32
+        font_size = font_size if font_size else 32
         font = ("fonts" + font + ".ttf") if font else "fonts/UKIJDiY.ttf"
         font = ImageFont.truetype(font, font_size, encoding="UTF-8")
         draw.text((0, 0), text, (255, 0, 0), font=font)
