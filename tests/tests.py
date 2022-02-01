@@ -3,10 +3,12 @@ import pytest
 import bot
 from bot import count_user_images, get_image_id
 
-# @pytest.fixture()
-# def users_info():
-#     users_info = {111: {"sent_images": 2}, 222: {"sent_images": 0}}
-#     return users_info
+
+@pytest.fixture()
+def users_info():
+    USERS_INFO = {111: {"sent_images": 2}, 222: {"sent_images": 0}}
+    return USERS_INFO
+
 
 # USERS_INFO = {111: {"sent_images": 2}, 222: {"sent_images": 0}}
 
@@ -23,10 +25,10 @@ def users_info():
     return bot.USERS_INFO
 
 
-def test_get_image_id_from_voice_update():
-    context = (
-        "<telegram.ext.callbackcontext.CallbackContext object at 0x0000025F6C023C30>"
-    )
-    with open("tests/test_data/voice_update.txt") as update:
-        result = get_image_id(update, context)
-        assert result == 2893
+# def test_get_image_id_from_voice_update():
+#     context = (
+#         "<telegram.ext.callbackcontext.CallbackContext object at 0x0000025F6C023C30>"
+#     )
+#     with open("tests/test_data/voice_update.txt") as update:
+#         result = get_image_id(update, context)
+#         assert result == 2893

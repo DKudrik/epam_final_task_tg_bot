@@ -1,6 +1,4 @@
-﻿# бейдж
-
-# Picture_process_bot
+﻿# Picture_process_bot
 
 Visit the project at https://t.me/picture_process_bot
 
@@ -10,10 +8,13 @@ Visit the project at https://t.me/picture_process_bot
   * Sending all the GIFs created by the users (except of private GIFs).
   * Sending all the GIFs to the user created by him.
 
+  List of commands:
+  * /start - to request the greeting message
+
 
 ### Prerequisites
 
-  Docker, Python installed
+  Docker installed
 
 ### Installing
 
@@ -21,12 +22,11 @@ To start a project:
   1. Register a telegram bot and get a token. Put it in the .env file under "bot_token" name
   2. Register a bucket in the Yandex Object Storage and get a key id and a secret key. Put them
      in the .env file under "aws_access_key_id" and "aws_secret_access_key" names
-  3. WWWWWWWWW
+  3. If needed changed MongoDB login and password
+  4. New fonts should be added to "fonts" folder (names should only contain letters and numbers)
+  5. To start, type in the terminal "docker-compose up".
 
 
-  * To get into a container with postgres DB or with api_yamdb project open a new terminal tab
-   and type 'docker ps', then choose ID of the container and type 'docker exec -it    <container_id> bash'
-  *  To create a superuser in api_yamdb container type 'python manage.py createsuper'
 ## Built With
 
 * [Python](https://www.python.org/) - Programming language used
